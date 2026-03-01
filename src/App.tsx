@@ -63,16 +63,13 @@ export default function App() {
       Object.keys(newMem).length > 0
         ? `\n\nUser memory: ${JSON.stringify(newMem)}`
         : "";
-
-    // Build Gemini conversation history
     const geminiHistory = updatedMessages.slice(0, -1).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
-
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -110,47 +107,80 @@ export default function App() {
 
   const memTags = Object.entries(memory).filter(([, v]) => v);
 
+  const features = [
+    {
+      icon: "🧠",
+      title: "Preference Memory",
+      desc: "Remembers your goals, pace, and learning style across sessions",
+    },
+    {
+      icon: "⚡",
+      title: "Conflict Resolution",
+      desc: "Detects and resolves conflicting preferences intelligently",
+    },
+    {
+      icon: "🔗",
+      title: "Chain-of-Thought",
+      desc: "Plans step-by-step with visible reasoning",
+    },
+    {
+      icon: "⏱️",
+      title: "Time & Budget Aware",
+      desc: "Respects your daily hours and free/paid resource limits",
+    },
+    {
+      icon: "✏️",
+      title: "Plan Revision",
+      desc: "Updates your plan based on feedback without starting over",
+    },
+  ];
+
   return (
     <div
       style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg,#0a0e1a,#0d1b2a)",
+        height: "100vh",
+        background: "linear-gradient(135deg,#080c18,#0d1b2a)",
         fontFamily: "sans-serif",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
         color: "#e2e8f0",
+        overflow: "hidden",
       }}
     >
       <style>{`
         * { box-sizing:border-box; margin:0; padding:0; }
-        .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#3b82f6; animation:bounce 1.2s infinite; margin:0 2px; }
-        .dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+        ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+        .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3b82f6;animation:bounce 1.2s infinite;margin:0 2px}
+        .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
         @keyframes bounce{0%,80%,100%{transform:scale(0)}40%{transform:scale(1)}}
         .msg{animation:fadeUp .3s ease}
         @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         textarea:focus{outline:none}
-        .keybtn:hover{background:rgba(37,99,235,0.3) !important}
+        .feat-card:hover{background:rgba(37,99,235,0.12) !important;border-color:rgba(37,99,235,0.4) !important}
+        .send-btn:hover:not(:disabled){background:#1d4ed8 !important}
       `}</style>
 
-      {/* Header */}
+      {/* Top Header Bar */}
       <div
         style={{
           width: "100%",
-          maxWidth: "760px",
-          padding: "20px 20px 0",
+          padding: "14px 24px",
+          borderBottom: "1px solid rgba(37,99,235,0.2)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          background: "rgba(8,12,24,0.8)",
+          backdropFilter: "blur(10px)",
+          flexShrink: 0,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div
             style={{
               background: "linear-gradient(135deg,#2563eb,#7c3aed)",
               borderRadius: "10px",
               padding: "8px",
-              fontSize: "18px",
+              fontSize: "20px",
             }}
           >
             🎓
@@ -158,7 +188,7 @@ export default function App() {
           <div>
             <h1
               style={{
-                fontSize: "20px",
+                fontSize: "18px",
                 fontWeight: 700,
                 background: "linear-gradient(90deg,#60a5fa,#a78bfa)",
                 WebkitBackgroundClip: "text",
@@ -167,305 +197,550 @@ export default function App() {
             >
               AI Curriculum Planner
             </h1>
-            <p style={{ fontSize: "11px", color: "#475569" }}></p>
+            <p style={{ fontSize: "11px", color: "#475569" }}>
+              UC #13 · Memory + Planning Agent · Powered by Gemini
+            </p>
           </div>
         </div>
-        <button
-          className="keybtn"
-          onClick={() => setShowKeyInput(!showKeyInput)}
-          style={{
-            background: keyEntered
-              ? "rgba(34,197,94,0.15)"
-              : "rgba(37,99,235,0.15)",
-            border: `1px solid ${keyEntered ? "#16a34a" : "#2563eb"}`,
-            borderRadius: "8px",
-            padding: "6px 12px",
-            fontSize: "11px",
-            color: keyEntered ? "#4ade80" : "#60a5fa",
-            cursor: "pointer",
-          }}
-        >
-          {keyEntered ? "✓ Gemini Connected" : "Set API Key"}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {keyEntered && (
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#4ade80",
+                background: "rgba(34,197,94,0.1)",
+                border: "1px solid #16a34a",
+                borderRadius: "20px",
+                padding: "3px 10px",
+              }}
+            >
+              ● Live
+            </span>
+          )}
+          <button
+            onClick={() => setShowKeyInput(!showKeyInput)}
+            style={{
+              background: keyEntered
+                ? "rgba(34,197,94,0.15)"
+                : "rgba(37,99,235,0.15)",
+              border: `1px solid ${keyEntered ? "#16a34a" : "#2563eb"}`,
+              borderRadius: "8px",
+              padding: "7px 14px",
+              fontSize: "12px",
+              color: keyEntered ? "#4ade80" : "#60a5fa",
+              cursor: "pointer",
+            }}
+          >
+            {keyEntered ? "✓ Gemini Connected" : "Set API Key"}
+          </button>
+        </div>
       </div>
 
       {/* API Key Input */}
       {showKeyInput && (
         <div
           style={{
-            width: "100%",
-            maxWidth: "760px",
-            margin: "12px 20px 0",
-            background: "rgba(37,99,235,0.08)",
-            border: "1px solid rgba(37,99,235,0.3)",
-            borderRadius: "12px",
-            padding: "14px",
+            padding: "12px 24px",
+            background: "rgba(37,99,235,0.06)",
+            borderBottom: "1px solid rgba(37,99,235,0.2)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            flexShrink: 0,
           }}
         >
           <p
-            style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px" }}
+            style={{ fontSize: "12px", color: "#94a3b8", whiteSpace: "nowrap" }}
           >
-            Get your free key at{" "}
-            <strong style={{ color: "#60a5fa" }}>aistudio.google.com</strong> →
-            Get API Key
+            Get free key at{" "}
+            <strong style={{ color: "#60a5fa" }}>aistudio.google.com</strong>:
           </p>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="AIza..."
-              style={{
-                flex: 1,
-                background: "rgba(15,23,42,0.8)",
-                border: "1px solid #1e3a5f",
-                borderRadius: "8px",
-                padding: "8px 12px",
-                color: "#e2e8f0",
-                fontSize: "13px",
-                outline: "none",
-              }}
-            />
-            <button
-              onClick={() => {
-                setKeyEntered(true);
-                setShowKeyInput(false);
-              }}
-              style={{
-                background: "#2563eb",
-                border: "none",
-                borderRadius: "8px",
-                padding: "8px 16px",
-                color: "white",
-                fontSize: "13px",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
-            >
-              Connect
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Memory Tags */}
-      {memTags.length > 0 && (
-        <div
-          style={{
-            width: "100%",
-            maxWidth: "760px",
-            padding: "10px 20px 0",
-            display: "flex",
-            gap: "6px",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontSize: "11px", color: "#475569" }}>Memory:</span>
-          {memTags.map(([k, v]) => (
-            <span
-              key={k}
-              style={{
-                background: "rgba(124,58,237,0.15)",
-                border: "1px solid rgba(124,58,237,0.4)",
-                borderRadius: "20px",
-                padding: "2px 10px",
-                fontSize: "10px",
-                color: "#a78bfa",
-              }}
-            >
-              {k}: {v}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Messages */}
-      <div
-        style={{
-          flex: 1,
-          width: "100%",
-          maxWidth: "760px",
-          padding: "16px 20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "14px",
-          overflowY: "auto",
-          minHeight: "calc(100vh - 160px)",
-          maxHeight: "calc(100vh - 160px)",
-        }}
-      >
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className="msg"
-            style={{
-              display: "flex",
-              justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
-            }}
-          >
-            {msg.role === "assistant" && (
-              <div
-                style={{
-                  width: "30px",
-                  height: "30px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "13px",
-                  flexShrink: 0,
-                  marginRight: "8px",
-                  marginTop: "2px",
-                }}
-              >
-                🎓
-              </div>
-            )}
-            <div
-              style={{
-                maxWidth: "80%",
-                background:
-                  msg.role === "user"
-                    ? "linear-gradient(135deg,#1d4ed8,#7c3aed)"
-                    : "rgba(15,23,42,0.8)",
-                border:
-                  msg.role === "user"
-                    ? "none"
-                    : "1px solid rgba(37,99,235,0.2)",
-                borderRadius:
-                  msg.role === "user"
-                    ? "18px 18px 4px 18px"
-                    : "18px 18px 18px 4px",
-                padding: "12px 16px",
-                fontSize: "14px",
-                lineHeight: "1.7",
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div
-              style={{
-                width: "30px",
-                height: "30px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg,#2563eb,#7c3aed)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              🎓
-            </div>
-            <div
-              style={{
-                background: "rgba(15,23,42,0.8)",
-                border: "1px solid rgba(37,99,235,0.2)",
-                borderRadius: "18px 18px 18px 4px",
-                padding: "14px 18px",
-              }}
-            >
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-            </div>
-          </div>
-        )}
-        {!keyEntered && messages.length === 1 && (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "20px",
-              color: "#475569",
-              fontSize: "13px",
-            }}
-          >
-            👆 Click <strong style={{ color: "#60a5fa" }}>"Set API Key"</strong>{" "}
-            above to connect Gemini and start planning!
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {/* Input */}
-      <div
-        style={{ width: "100%", maxWidth: "760px", padding: "8px 20px 20px" }}
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: "8px",
-            background: "rgba(15,23,42,0.9)",
-            border: "1px solid rgba(37,99,235,0.3)",
-            borderRadius: "14px",
-            padding: "8px 8px 8px 14px",
-          }}
-        >
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              keyEntered
-                ? "Tell me what you want to learn, your schedule, or ask to revise your plan..."
-                : "Connect your Gemini API key first..."
-            }
-            disabled={!keyEntered}
-            rows={1}
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="AIza..."
             style={{
               flex: 1,
-              background: "transparent",
-              border: "none",
+              background: "rgba(15,23,42,0.8)",
+              border: "1px solid #1e3a5f",
+              borderRadius: "8px",
+              padding: "7px 12px",
               color: "#e2e8f0",
-              fontSize: "14px",
-              resize: "none",
-              fontFamily: "inherit",
-              lineHeight: "1.5",
-              paddingTop: "5px",
+              fontSize: "13px",
               outline: "none",
-              maxHeight: "100px",
-              overflowY: "auto",
             }}
           />
           <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim() || !keyEntered}
+            onClick={() => {
+              setKeyEntered(true);
+              setShowKeyInput(false);
+            }}
             style={{
-              background:
-                loading || !input.trim() || !keyEntered ? "#1e3a5f" : "#2563eb",
+              background: "#2563eb",
               border: "none",
-              borderRadius: "10px",
-              width: "38px",
-              height: "38px",
-              cursor:
-                loading || !input.trim() || !keyEntered
-                  ? "not-allowed"
-                  : "pointer",
-              fontSize: "16px",
+              borderRadius: "8px",
+              padding: "7px 18px",
               color: "white",
-              transition: "all 0.2s",
+              fontSize: "13px",
+              cursor: "pointer",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
             }}
           >
-            →
+            Connect
           </button>
         </div>
-        <p
+      )}
+
+      {/* Main Content */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {/* Left Panel */}
+        <div
           style={{
-            fontSize: "10px",
-            color: "#334155",
-            textAlign: "center",
-            marginTop: "6px",
+            width: "300px",
+            flexShrink: 0,
+            borderRight: "1px solid rgba(37,99,235,0.15)",
+            padding: "20px 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            overflowY: "auto",
+            background: "rgba(8,12,24,0.4)",
           }}
         >
-          Enter to send · Shift+Enter for new line · Memory persists across
-          sessions
-        </p>
+          {/* Memory Section */}
+          <div>
+            <p
+              style={{
+                fontSize: "11px",
+                color: "#475569",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: "10px",
+              }}
+            >
+              📍 User Memory
+            </p>
+            {memTags.length > 0 ? (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+              >
+                {memTags.map(([k, v]) => (
+                  <div
+                    key={k}
+                    style={{
+                      background: "rgba(124,58,237,0.1)",
+                      border: "1px solid rgba(124,58,237,0.3)",
+                      borderRadius: "10px",
+                      padding: "8px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        color: "#7c3aed",
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {k}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "#a78bfa",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {v}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: "rgba(37,99,235,0.05)",
+                  border: "1px dashed rgba(37,99,235,0.2)",
+                  borderRadius: "10px",
+                  padding: "12px",
+                  textAlign: "center",
+                }}
+              >
+                <p style={{ fontSize: "12px", color: "#334155" }}>
+                  No memory yet.
+                </p>
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "#1e3a5f",
+                    marginTop: "4px",
+                  }}
+                >
+                  Start chatting to build memory!
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div style={{ borderTop: "1px solid rgba(37,99,235,0.1)" }} />
+
+          {/* Features */}
+          <div>
+            <p
+              style={{
+                fontSize: "11px",
+                color: "#475569",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: "10px",
+              }}
+            >
+              🚀 Features
+            </p>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+            >
+              {features.map((f) => (
+                <div
+                  key={f.title}
+                  className="feat-card"
+                  style={{
+                    background: "rgba(37,99,235,0.06)",
+                    border: "1px solid rgba(37,99,235,0.15)",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    transition: "all 0.2s",
+                    cursor: "default",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "3px",
+                    }}
+                  >
+                    <span style={{ fontSize: "14px" }}>{f.icon}</span>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#93c5fd",
+                      }}
+                    >
+                      {f.title}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: "11px",
+                      color: "#475569",
+                      lineHeight: "1.4",
+                    }}
+                  >
+                    {f.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div
+            style={{
+              borderTop: "1px solid rgba(37,99,235,0.1)",
+              paddingTop: "16px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "11px",
+                color: "#475569",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: "10px",
+              }}
+            >
+              📊 Session Stats
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "8px",
+              }}
+            >
+              {[
+                { label: "Messages", value: messages.length },
+                { label: "Memory Items", value: memTags.length },
+                {
+                  label: "User Msgs",
+                  value: messages.filter((m) => m.role === "user").length,
+                },
+                {
+                  label: "AI Replies",
+                  value: messages.filter((m) => m.role === "assistant").length,
+                },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  style={{
+                    background: "rgba(37,99,235,0.06)",
+                    borderRadius: "8px",
+                    padding: "8px",
+                    textAlign: "center",
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: "18px",
+                      fontWeight: 700,
+                      color: "#60a5fa",
+                    }}
+                  >
+                    {s.value}
+                  </p>
+                  <p style={{ fontSize: "10px", color: "#475569" }}>
+                    {s.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Chat Panel */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          {/* Messages */}
+          <div
+            style={{
+              flex: 1,
+              padding: "20px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px",
+              overflowY: "auto",
+            }}
+          >
+            {messages.map((msg, i) => (
+              <div
+                key={i}
+                className="msg"
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    msg.role === "user" ? "flex-end" : "flex-start",
+                }}
+              >
+                {msg.role === "assistant" && (
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "14px",
+                      flexShrink: 0,
+                      marginRight: "10px",
+                      marginTop: "2px",
+                    }}
+                  >
+                    🎓
+                  </div>
+                )}
+                <div
+                  style={{
+                    maxWidth: "75%",
+                    background:
+                      msg.role === "user"
+                        ? "linear-gradient(135deg,#1d4ed8,#7c3aed)"
+                        : "rgba(13,27,42,0.9)",
+                    border:
+                      msg.role === "user"
+                        ? "none"
+                        : "1px solid rgba(37,99,235,0.2)",
+                    borderRadius:
+                      msg.role === "user"
+                        ? "18px 18px 4px 18px"
+                        : "18px 18px 18px 4px",
+                    padding: "12px 16px",
+                    fontSize: "14px",
+                    lineHeight: "1.7",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {msg.content}
+                </div>
+                {msg.role === "user" && (
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      background: "linear-gradient(135deg,#7c3aed,#2563eb)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "14px",
+                      flexShrink: 0,
+                      marginLeft: "10px",
+                      marginTop: "2px",
+                    }}
+                  >
+                    👤
+                  </div>
+                )}
+              </div>
+            ))}
+            {loading && (
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              >
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg,#2563eb,#7c3aed)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  🎓
+                </div>
+                <div
+                  style={{
+                    background: "rgba(13,27,42,0.9)",
+                    border: "1px solid rgba(37,99,235,0.2)",
+                    borderRadius: "18px 18px 18px 4px",
+                    padding: "14px 18px",
+                  }}
+                >
+                  <span className="dot" />
+                  <span className="dot" />
+                  <span className="dot" />
+                </div>
+              </div>
+            )}
+            {!keyEntered && messages.length === 1 && (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "40px 20px",
+                  color: "#334155",
+                  fontSize: "14px",
+                }}
+              >
+                <div style={{ fontSize: "48px", marginBottom: "12px" }}>🔑</div>
+                <p>
+                  Click{" "}
+                  <strong style={{ color: "#60a5fa" }}>"Set API Key"</strong> in
+                  the top right to connect Gemini and start planning!
+                </p>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input */}
+          <div
+            style={{
+              padding: "12px 24px 20px",
+              borderTop: "1px solid rgba(37,99,235,0.15)",
+              background: "rgba(8,12,24,0.6)",
+              flexShrink: 0,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                background: "rgba(13,27,42,0.9)",
+                border: "1px solid rgba(37,99,235,0.3)",
+                borderRadius: "14px",
+                padding: "10px 10px 10px 16px",
+              }}
+            >
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={
+                  keyEntered
+                    ? "Tell me what you want to learn, your schedule, or ask to revise your plan..."
+                    : "Connect your Gemini API key first..."
+                }
+                disabled={!keyEntered}
+                rows={1}
+                style={{
+                  flex: 1,
+                  background: "transparent",
+                  border: "none",
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  resize: "none",
+                  fontFamily: "inherit",
+                  lineHeight: "1.5",
+                  paddingTop: "4px",
+                  outline: "none",
+                  maxHeight: "120px",
+                  overflowY: "auto",
+                }}
+              />
+              <button
+                className="send-btn"
+                onClick={sendMessage}
+                disabled={loading || !input.trim() || !keyEntered}
+                style={{
+                  background:
+                    loading || !input.trim() || !keyEntered
+                      ? "#1e3a5f"
+                      : "#2563eb",
+                  border: "none",
+                  borderRadius: "10px",
+                  width: "40px",
+                  height: "40px",
+                  cursor:
+                    loading || !input.trim() || !keyEntered
+                      ? "not-allowed"
+                      : "pointer",
+                  fontSize: "18px",
+                  color: "white",
+                  transition: "all 0.2s",
+                  flexShrink: 0,
+                }}
+              >
+                →
+              </button>
+            </div>
+            <p
+              style={{
+                fontSize: "10px",
+                color: "#1e3a5f",
+                textAlign: "center",
+                marginTop: "6px",
+              }}
+            >
+              Enter to send · Shift+Enter for new line
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
